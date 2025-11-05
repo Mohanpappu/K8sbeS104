@@ -1,39 +1,56 @@
 package com.klu.ecommerce.controller;
 
-import com.klu.ecommerce.service.UserService;
+import com.klu.ecommerce.model.User;
+import com.klu.ecommerce.repository.UserRepository;
+import com.klu.ecommerce.security.JwtUtil;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/auth")  // Base path for authentication
-@CrossOrigin("*")         // Allow CORS from all origins
+@RequestMapping("/back1/api/auth")
 public class AuthController {
 
-    private final UserService userService;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
 
-    public AuthController(UserService userService) {
-        this.userService = userService;
+    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                          AuthenticationManager authenticationManager, JwtUtil jwtUtil) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
+        this.jwtUtil = jwtUtil;
     }
 
-    // Signup endpoint: POST /back1/auth/signup
     @PostMapping("/signup")
-    public ResponseEntity<String> registerUser(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String email = request.get("email");
-        String password = request.get("password");
+    public ResponseEntity<Map<String,String>> signup(@RequestBody Map<String,String> userMap) {
+        User user = new User();
+        user.setUsername(userMap.get("username"));
+        user.setEmail(userMap.get("email"));
+        user.setPassword(passwordEncoder.encode(userMap.get("password")));
+        userRepository.save(user);
 
-        // Call UserService to register the user
-        return ResponseEntity.ok(userService.registerUser(username, email, password));
+        Map<String,String> response = new HashMap<>();
+        response.put("message", "User registered successfully!");
+        return ResponseEntity.ok(response);
     }
 
-    // Login endpoint: POST /back1/auth/login
     @PostMapping("/login")
-    public ResponseEntity<String> loginUser(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String password = request.get("password");
+    public ResponseEntity<Map<String,String>> login(@RequestBody Map<String,String> userMap) {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(userMap.get("username"), userMap.get("password"))
+        );
 
-        // Call UserService to login the user
-        return ResponseEntity.ok(userService.loginUser(username, password));
+        String token = jwtUtil.generateToken(userMap.get("username"));
+        Map<String,String> response = new HashMap<>();
+        response.put("token", token);
+        return ResponseEntity.ok(response);
     }
 }
