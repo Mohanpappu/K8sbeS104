@@ -1,6 +1,6 @@
 package com.klu.ecommerce.service;
 
-import com.klu.ecommerce.entity.User;
+import com.klu.ecommerce.model.User;
 import com.klu.ecommerce.repository.UserRepository;
 import com.klu.ecommerce.security.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
